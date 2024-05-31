@@ -19,23 +19,44 @@ export async function run(provider: NetworkProvider) {
     const jettonWallet = provider.open(JettonWallet.createFromAddress(jettoWalletAddress));
 
     // 遍历participants，取出里面的值放到messages里面
-    let messages = [];
-    for(let i = 0;i < participants.length;i++){
-        messages.push({
-            to: Address.parse(participants[i].address),
-            amount: toNano(participants[i].sum)
+    const MAX_BATCH_SIZE = 200;
+    let start = 0;
+    let end = MAX_BATCH_SIZE;
+    // TEST,把participants里面的数据改成1000个i
+    // const participants = Array.from({ length: 1000 }, (_, i) => ({
+    //     address: `${i}`,
+    //     sum: 1000n,
+    // }));
+
+
+    while (start < participants.length) {
+        const batch = participants.slice(start, end);
+        const messages = [];
+
+        for (let i = 0; i < batch.length; i++) {
+            messages.push({
+                to: Address.parse(batch[i].address),
+                amount: toNano(batch[i].sum)
+            });
+        }
+        console.log(batch)
+
+        const expectedRequiredGas = toNano(0.05) * BigInt(messages.length);
+        const expectedServiceFee = toNano(1);
+        const totalJettonAmount = messages.reduce((acc, m) => acc + m.amount, 0n);
+        const tx = await jettonWallet.sendTransfer(provider.sender(), toNano(2) + expectedRequiredGas + expectedServiceFee, {
+            jettonAmount: totalJettonAmount,
+            to: batchSenderDeployments.address,
+            responseAddress: user,
+            customPayload: Cell.EMPTY,
+            forwardTonAmount: toNano(1) + expectedRequiredGas + expectedServiceFee,
+            forwardPayload: BatchSender.buildSendPayload(messages),
         });
+
+        start = end;
+        end += MAX_BATCH_SIZE;
+        if (end > participants.length) {
+            end = participants.length;
+        }
     }
-    // console.log(messages);
-    const expectedRequiredGas = toNano(0.05) * BigInt(messages.length);
-    const expectedServiceFee = toNano(1);
-    const totalJettonAmount = messages.reduce((acc, m) => acc + m.amount, 0n);
-    const tx = await jettonWallet.sendTransfer(provider.sender(), toNano(2) + expectedRequiredGas + expectedServiceFee, {
-        jettonAmount: totalJettonAmount,
-        to: batchSenderDeployments.address,
-        responseAddress: user,
-        customPayload: Cell.EMPTY,
-        forwardTonAmount: toNano(1) + expectedRequiredGas + expectedServiceFee,
-        forwardPayload: BatchSender.buildSendPayload(messages),
-    });
 }
