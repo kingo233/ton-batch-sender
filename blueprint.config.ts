@@ -5,6 +5,6 @@ export const config: Config = {
         endpoint: "https://toncenter.com/api/v2/jsonRPC",
         type: 'mainnet',
         version: 'v2',
-        key: 'bf600c06efcedf7ebc7ccb9345929112d0e8fafc3f93b00dcec2442b6e1c834d',
+        key: '895c4b9c5d5426e587b6b8fd45d37c711e7a387f9a6be6a600b2e27e153e1425',
     },
 };
